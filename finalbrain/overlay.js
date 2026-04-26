@@ -113,6 +113,11 @@ if (window.__INITIAL_STATE__) {
 
         </div>
 
+        <div class="section">
+            <!-- Change the label to "Protect Menu" -->
+            <button id="freeze-btn" style="background: #6b21a8; width: 100%; margin-bottom: 8px;">Protect Menu: OFF</button>
+        </div>
+
         <div id="state-initial" class="btn-row">
           <button id="start-btn" class="start-btn">Start</button>
           <button id="finish-btn">Finish</button>
@@ -337,6 +342,24 @@ executeBtn.onclick = async () => {
   document.addEventListener('mouseup', () => isDragging = false);
 
   //////////////////////////////////////////////////////////////////////
+
+  const fBtn = shadow.getElementById('freeze-btn');
+fBtn.textContent = "Hotkey: Alt+Shift+S";
+fBtn.style.background = "#444";
+
+fBtn.onmousedown = (e) => {
+  e.preventDefault(); // Don't steal focus!
+  const oldText = fBtn.textContent;
+  fBtn.textContent = "Hover & Press Alt+Shift+S";
+  fBtn.style.background = "#6b21a8";
+  
+  setTimeout(() => {
+    fBtn.textContent = oldText;
+    fBtn.style.background = "#444";
+  }, 3000);
+};
+
+  ////////////////////////////////////////////////////////
 const fileList = shadow.getElementById('file-list');
 const refreshBtn = shadow.getElementById('refresh-btn');
 

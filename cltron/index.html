@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    /* Step 1: Make the actual window background invisible to fix the "rectangle" */
+    html, body {
+      background: transparent !important;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    /* Step 2: Put your styles here so the rounding actually looks round */
+    .container {
+      background: rgba(35, 35, 35, 0.98); /* Slightly darker for better contrast */
+      color: white;
+      padding: 18px;
+      border-radius: 12px;
+      border: 1px solid #444;
+      margin: 5px; /* Creates a small buffer so the shadow/rounding isn't cut off */
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      -webkit-app-region: drag; /* Window remains draggable */
+      user-select: none;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    /* Step 3: Better readability for the prompts */
+    #ai-prompt {
+      font-size: 12px;
+      font-weight: 600;
+      color: #bbb; /* Brighter than #666 */
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #status {
+      font-size: 10px;
+      color: #00ff00;
+      font-weight: bold;
+    }
+
+    #i {
+      -webkit-app-region: no-drag; /* CRITICAL: Keeps input clickable */
+      width: 100%;
+      background: #111;
+      border: 1px solid #444;
+      color: white;
+      padding: 10px 12px;
+      border-radius: 6px;
+      outline: none;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    /* Subtle focus effect for the input */
+    #i:focus {
+      border-color: #007bff;
+    }
+</style>
+
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span id="ai-prompt">STAGEHAND AI</span>
+            <span id="status" style="color: #00ff00;">● READY</span>
+        </div>
+    </div>
+  
+
+  <input id="i" autofocus placeholder="Type instruction...">
+
+  <script>
+  const { ipcRenderer } = require('electron');
+  const input = document.getElementById('i');
+  const status = document.getElementById('status');
+  const promptLabel = document.getElementById('ai-prompt');
+
+  // Listen for the message from main.js
+  ipcRenderer.on('set-label', (event, text) => {
+      promptLabel.innerText = text.toUpperCase();
+  });
+
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter' && input.value.trim()) {
+      status.innerText = "● SENDING...";
+      status.style.color = "yellow";
+      ipcRenderer.send('send-cmd', input.value.trim());
+      input.value = '';
+      setTimeout(() => { 
+          status.innerText = "● READY"; 
+          status.style.color = "#00ff00";
+      }, 1000);
+    }
+  };
+</script>
+</body>
+</html>

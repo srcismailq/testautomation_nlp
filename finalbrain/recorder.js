@@ -96,4 +96,68 @@
         e.stopPropagation();
       }
     }, { capture: true });
+//for menu freezing
+    (function() {
+  let mX = 0, mY = 0;
+  window.addEventListener('mousemove', (e) => { mX = e.clientX; mY = e.clientY; }, true);
+
+  window.addEventListener('keydown', (e) => {
+    if (e.altKey && e.shiftKey && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Fix 1: Ensure we target the Host specifically
+      const host = document.getElementById('my-ai-overlay-host');
+      if (host) host.style.pointerEvents = 'none';
+
+      let el = document.elementFromPoint(mX, mY);
+
+      // Fix 2: Enhanced Bubble Logic with SVG safety
+      while (el && el.parentElement && el.tagName !== 'BODY') {
+        const className = (el.className && typeof el.className === 'string') ? el.className.toLowerCase() : '';
+        const isTarget = ['LI', 'BUTTON', 'A', 'INPUT', 'TEXTAREA'].includes(el.tagName);
+        const hasRole = el.getAttribute('role'); 
+        const isItem = className.includes('item') || className.includes('suggestion') || className.includes('menu');
+
+        if (isTarget || hasRole || isItem) break;
+        el = el.parentElement;
+      }
+
+      if (host) host.style.pointerEvents = 'auto';
+
+      if (el && typeof window.saveToNode === 'function') {
+        const originalOutline = el.style.outline;
+        el.style.outline = '4px solid #a855f7';
+        el.style.outlineOffset = '-4px';
+        setTimeout(() => { el.style.outline = originalOutline; }, 400);
+
+        window.saveToNode({
+          target: {
+            tag: el.tagName,
+            selector: `xpath=${getCleanXPath(el)}`,
+            text: el.innerText || el.value || ""
+          }
+        });
+      }
+    }
+  }, true);
+
+  // Fix 3: XPath generator that ignores "Garbage" dynamic IDs
+  function getCleanXPath(el) {
+    // If ID starts with a number or contains common dynamic prefixes, skip it
+    if (el.id && !/^[0-9]|sbse|ooui-|yt-/.test(el.id)) return `//*[@id="${el.id}"]`;
+    const parts = [];
+    while (el && el.nodeType === Node.ELEMENT_NODE) {
+      let nb = 0;
+      let s = el.previousSibling;
+      while (s) {
+        if (s.nodeType === Node.ELEMENT_NODE && s.tagName === el.tagName) nb++;
+        s = s.previousSibling;
+      }
+      parts.unshift(`${el.tagName.toLowerCase()}[${nb + 1}]`);
+      el = el.parentNode;
+    }
+    return parts.length ? `/${parts.join('/')}` : '';
+  }
+})();
   })();

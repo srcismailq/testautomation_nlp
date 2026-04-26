@@ -1,0 +1,10 @@
+{
+  "name": "stagehand-ui",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^30.5.1"
+  }
+}
