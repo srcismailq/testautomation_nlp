@@ -31,6 +31,10 @@
    */
   console.log('overlay.js: Script loaded at', new Date().toISOString());
 
+  let onConfirm = null; 
+  let backState = 'initial'; 
+  let currentData = { view: 'initial' };
+
 // Check if pullState is available immediately
 if (typeof pullState === 'function') {
   console.log('overlay.js: pullState is available right away');
@@ -208,44 +212,54 @@ if (window.__INITIAL_STATE__) {
   };
 
 
-   let onConfirm = null; // Stores the specific function to run
-   let backState = stateActive; // Remembers where to go if you click 'No'
-
 
     // Handle "Yes" click
-
   confirmYes.onclick = async () => {
-    confirmYes.disabled = true; // Prevent double-clicks
-    if (onConfirm) await onConfirm();
-    
-    onConfirm = null;
+  if (onConfirm) {
+    confirmYes.disabled = true;
+    await onConfirm(); 
     confirmYes.disabled = false;
+  }
+  // Clear action and go back to initial
+  await window.pushState(shadow.getElementById('main-input').value, '', 'initial', null);
+  onConfirm = null; 
+};
 
-    await window.pushState(mainInput.value, rawViewer.value, 'initial');
-    if (typeof refreshFiles === 'function') refreshFiles();
-    
-  };
-
-  // Handle "No" click - Just goes back to where you were
-  confirmNo.onclick = async () => {
-    onConfirm = null;
-    const nextView = backState === stateActive ? 'active' : 'initial';
-    // TELL NODE: Go back to previous view
-    await window.pushState(mainInput.value, rawViewer.value, nextView);
-  };
+confirmNo.onclick = async () => {
+  onConfirm = null;
+  // Use the globally stored currentData to decide where to go back to
+  const returnView = (currentData.view === 'confirm') ? 'active' : 'initial'; 
+  await window.pushState(shadow.getElementById('main-input').value, '', returnView, null);
+};
+  
 
     saveBtn.onclick = async () => {
-  backState = 'active';
-  // Tell Node: We are confirming a 'save'
-  await window.pushState(mainInput.value, rawViewer.value, 'confirm', 'save');
+  console.log("DEBUG 1: Save Button Clicked");
+  
+  // Use the local shadow variables to get the latest values
+  const textVal = shadow.getElementById('main-input').value;
+  const jsonVal = shadow.getElementById('raw-data-viewer').value;
+
+  // IMPORTANT: Ensure you are passing FOUR arguments. 
+  // If you pass 3, 'action' becomes undefined in Node.
+  await window.pushState(textVal, jsonVal, 'confirm', 'save');
 };
 
-deleteBtn.onclick = async () => {
-  backState = 'active';
-  // Tell Node: We are confirming a 'delete'
-  await window.pushState(mainInput.value, rawViewer.value, 'confirm', 'delete');
+ deleteBtn.onclick = async () => {
+  console.log('ATTEMPTING to delete push');
+  
+  // Get values directly from the shadow DOM to be safe
+  const text = shadow.getElementById('main-input').value;
+  const json = shadow.getElementById('raw-data-viewer').value;
+  
+  try {
+    // Explicitly pass all 4 arguments
+    await window.pushState(text, json, 'confirm', 'delete');
+    console.log('DEBUG: PushState call finished');
+  } catch (err) {
+    console.error('DEBUG: PushState FAILED:', err);
+  }
 };
-
 
 
   // Logic for Retry/Execute (Placeholder for your future backend calls)
@@ -389,27 +403,39 @@ window.addEventListener('sync-ui', (e) => {
   const data = e.detail;
   if (!data) return;
 
+  console.log("DEBUG 4: Browser received sync-ui event. Data:", data);
+
+  currentData = data; // Store this for confirmNo to use later
+
   const mInput = shadow.getElementById('main-input');
   const rViewer = shadow.getElementById('raw-data-viewer');
 
   // 1. Sync text (don't overwrite if the user is currently typing in this tab)
-  if (document.activeElement !== mInput) mInput.value = data.text || '';
-  if (document.activeElement !== rViewer) rViewer.value = data.json || '';
+  if (shadow.activeElement !== mInput) {
+    mInput.value = data.text || '';
+  }
+  if (shadow.activeElement !== rViewer) {
+    rViewer.value = data.json || '';
+  }
 
   if (data.action === 'save') {
     confirmMsg.textContent = "Confirm SAVE?";
     onConfirm = async () => {
-      console.log("Saving:", mainInput.value);
-      // await window.saveStepToFile(mainInput.value); 
+      console.log("Saving to file:", data.text);
+      //await window.saveStepToFile(data.text); // Ensure this function exists in finalbrain.ts
     };
   } else if (data.action === 'delete') {
-    confirmMsg.textContent = "Confirm DELETE text?";
+  // IF THIS PART NEVER RUNS, CHECK THE LOGS FOR data.action
+  confirmMsg.textContent = "Confirm DELETE text?";
     onConfirm = async () => {
-      mainInput.value = '';
-      rawViewer.value = '';
+      console.log("DEBUG: Executing Delete...");
+      // Clear the inputs locally
+      shadow.getElementById('main-input').value = '';
+      shadow.getElementById('raw-data-viewer').value = '';
+      // Tell the bridge to clear the central state
+      await window.pushState('', '', 'initial', null);
     };
   }
-
   // 2. Sync visibility (Single source of truth)
   stateInitial.classList.toggle('hidden', data.view !== 'initial');
   stateActive.classList.toggle('hidden', data.view !== 'active');

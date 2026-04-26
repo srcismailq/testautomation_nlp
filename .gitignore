@@ -2,3 +2,6 @@
 act-cache/
 node_modules/
 .env
+act/
+testfolder/
+testcase/git 

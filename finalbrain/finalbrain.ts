@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { createNgllamaStagehand } from "../stagehand-ngllama-client.js";
+import type { Stagehand, PatchrightPage } from '@browserbasehq/stagehand';
 
 
 
@@ -108,7 +109,20 @@ async function launch() {
   });
   
 
-  let uiState = { text: '', json: '', view: 'initial', action: null };
+ interface UIState {
+  text: string;
+  json: string;
+  view: string;
+  action: string | null; // This allows both strings and nulls
+}
+
+// Initialize with the type
+let uiState: UIState = { 
+  text: '', 
+  json: '', 
+  view: 'initial', 
+  action: null 
+};
 
 
 
@@ -118,14 +132,23 @@ await context.exposeFunction('pullState', () => {
   return uiState;
 });
 
-await context.exposeFunction('pushState', async (text: string, json: string, view: string, action: null) => {
-  uiState = { text, json, view , action};
+await context.exposeFunction('pushState', async (text: string, json: string, view: string, action: string) => {
+  // Use '|| null' to clean up 'undefined' or empty strings
+  const cleanAction = action || null;
+  
+  console.log(`DEBUG 2: Node received - View: ${view}, Action: ${cleanAction}`);
 
-  
-  
-  // Update all existing pages without crashing if one is mid-navigation
+  uiState = { 
+    text: text || '', 
+    json: json || '', 
+    view: view || 'initial', 
+    action: cleanAction 
+  };
+
   context.pages().forEach(p => {
     p.evaluate((data) => {
+      // DEBUG 3:
+      console.log("DEBUG 3: Sending to page:", data);
       window.dispatchEvent(new CustomEvent('sync-ui', { detail: data }));
     }, uiState).catch(() => {}); 
   });
@@ -323,15 +346,26 @@ await context.exposeFunction('pushState', async (text: string, json: string, vie
       const el = document.querySelector('[data-ai-found]') as HTMLElement;
       if (el) el.style.outline = '';
     }).catch(() => {});
+
     if (!currentAction) {
       console.error("[AI] No action stored. Did you click Start first?");
       return false;
     }
     
     console.log(`[AI] Executing Action...`);
+
+     const userGoal = uiState.text; 
+     // 1. Get the current text from the UI state 
+    // (Assuming uiState.text contains your textarea content)
     try {
       // 3. Perform the act
-      await stagehand.act(currentAction); 
+      console.log('THIS IS CURRENT ACTION')
+      console.log(currentAction)
+      const combinedPrompt = `Using the element with selector "${currentAction.selector}", ${userGoal}`;
+
+      await stagehand.act(combinedPrompt, {
+        page: page as unknown as PatchrightPage
+      }); 
       
       // 4. ONLY WIPE ON SUCCESS
       // This way, if it fails, currentAction is still saved for the next click!
