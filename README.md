@@ -134,6 +134,16 @@ npm start
 
 ---
 
+---
+
+## Documentation
+
+For a detailed explanation of the project, please refer to the project presentation:
+
+- [Test-Automation-with-Natural-Details.pptx](./Test-Automation-with-Natural-Details.pptx)
+
+The presentation provides additional information about the project's problem statement, system architecture, workflow, implementation, technology stack, literature review, and future work.
+
 ## Example
 
 Input:
