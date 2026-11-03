@@ -146,6 +146,16 @@ The presentation provides additional information about the project's problem sta
 
 ## Example
 
+Run a saved test case (`.txt`, `.jsonl` or `.json`) with the unified runner:
+
+```bash
+npm run run:testcase -- testcase/test_playables.txt --provider ollama --model ministral-3:14b --verify
+npm run run:testcase -- youtubetest.jsonl --url https://www.youtube.com
+```
+
+Settings can also come from env vars: `NLT_PROVIDER`, `NLT_MODEL`, `NLT_CACHE_DIR`, `NLT_VERBOSE`.
+Shared code lives in `src/` (`schema`, `parsers`, `llm`, `runner`, `highlight`, `cli`).
+
 Input:
 
 ```text
